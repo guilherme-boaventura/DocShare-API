@@ -36,10 +36,7 @@ public class FolderController {
 
 	@PostMapping(path="/createFolder")
 	public String insira(@RequestBody FolderDto folder) {
-
-		
-		
-		return userRepo.findByUsername("guilherme.boaventura").getUsername();
+		return userRepo.findByUsername("guilherme.boaventura").get().getUsername();
 	}
 	
 }
