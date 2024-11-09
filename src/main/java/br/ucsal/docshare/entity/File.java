@@ -31,6 +31,13 @@ public class File {
 		
 	}
 	
+	public File(String name, String extension, Folder folder) {
+		super();
+		this.name = name;
+		this.extension = extension;
+		this.folder = folder;
+	}
+	
 	public String getName() {
 		return name;
 	}

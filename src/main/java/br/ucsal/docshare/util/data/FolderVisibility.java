@@ -20,6 +20,10 @@ public class FolderVisibility {
 	
 	private String acronym;
 	
+	public FolderVisibility() {
+		
+	}
+	
 	public FolderVisibility(String name, String acronym) {
 		super();
 		this.name = name;
@@ -42,7 +46,18 @@ public class FolderVisibility {
 		this.acronym = acronym;
 	}
 	
-	public List<FolderVisibility> findAll() {
+	public static FolderVisibility get(String acronym) {
+		List<FolderVisibility> visibility = Arrays.asList(PRIVATE,DEPARTMENTAL,CORPORATIVE)
+														.stream()
+														.filter(v -> v.getAcronym().equals(acronym))
+														.collect(Collectors.toList());
+		if(visibility.isEmpty()) {
+			return null;
+		}
+		return visibility.get(0);
+	}
+	
+	public static List<FolderVisibility> findAll() {
 		return Arrays.asList(PRIVATE,DEPARTMENTAL,CORPORATIVE);
 	}
 	

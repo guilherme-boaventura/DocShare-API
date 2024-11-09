@@ -28,6 +28,12 @@ public class FileContent {
 		
 	}
 
+	public FileContent(byte[] content, File file) {
+		super();
+		this.content = content;
+		this.file = file;
+	}
+
 	public byte[] getContent() {
 		return content;
 	}

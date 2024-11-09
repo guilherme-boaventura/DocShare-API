@@ -39,6 +39,14 @@ public class Folder {
 		
 	}
 
+	public Folder(String name, User user, FolderVisibility visibility, Tag tag) {
+		super();
+		this.name = name;
+		this.user = user;
+		this.visibility = visibility;
+		this.tag = tag;
+	}
+
 	public String getName() {
 		return name;
 	}
