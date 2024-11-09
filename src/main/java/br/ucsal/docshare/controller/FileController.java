@@ -3,7 +3,9 @@ package br.ucsal.docshare.controller;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,16 +41,16 @@ public class FileController {
 	public record FileUpload(MultipartFile file, String fileName, Long folderId) {}
 	
 	@PostMapping(path="/saveFile", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Resource> saveFile(@ModelAttribute FileUpload fileDto) throws IOException {
+	public String saveFile(@ModelAttribute FileUpload fileDto) throws IOException {
 		String originalName = fileDto.file.getOriginalFilename();
 		
-		File file = new File(originalName, originalName.substring(originalName.lastIndexOf('.')), folderRepo.findById(fileDto.folderId).get());
+		File file = new File(fileDto.fileName, originalName.substring(originalName.lastIndexOf('.')), folderRepo.findById(fileDto.folderId).get());
 		fileRepo.save(file);
 		
 		FileContent content = new FileContent(fileDto.file.getBytes(), file);
 		fileContentRepo.save(content);
 		
-		return ResponseEntity.ok().build();
+		return new Gson().toJson(file);
 	}
 	
 	@GetMapping(path="/getByFolder")
@@ -56,4 +58,26 @@ public class FileController {
 		return new Gson().toJson(fileRepo.findByFolder(folderRepo.findById(folderId).get()));
 	}
 	
+	@GetMapping(path="/deleteFile")
+	public String deleteFile(@RequestParam Long fileId) {
+		File file = fileRepo.findById(fileId).get();
+		
+		fileContentRepo.delete(fileContentRepo.findByFile(file));
+		
+		fileRepo.delete(file);
+		return new Gson().toJson(file);
+	}
+	
+	@GetMapping(path="/downloadFile")
+	public ResponseEntity<Resource> download(@RequestParam Long fileId) {
+		
+		File file = fileRepo.findById(fileId).get();
+		FileContent content = fileContentRepo.findByFile(file);
+		
+		return ResponseEntity.ok()
+							 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+							 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
+				             .body(new ByteArrayResource(content.getContent()));
+	}
+
 }
