@@ -1,6 +1,8 @@
 package br.ucsal.docshare.controller;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -20,6 +22,7 @@ import com.google.gson.Gson;
 
 import br.ucsal.docshare.entity.File;
 import br.ucsal.docshare.entity.FileContent;
+import br.ucsal.docshare.entity.Folder;
 import br.ucsal.docshare.repository.FileContentRepository;
 import br.ucsal.docshare.repository.FileRepository;
 import br.ucsal.docshare.repository.FolderRepository;
@@ -38,24 +41,46 @@ public class FileController {
 	private FileContentRepository fileContentRepo;
 	
 	
-	public record FileUpload(MultipartFile file, String fileName, Long folderId) {}
+	public record FileUpload(MultipartFile file, String fileName, Long folderId, Long fileId) {}
 	
 	@PostMapping(path="/saveFile", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
 	public String saveFile(@ModelAttribute FileUpload fileDto) throws IOException {
-		String originalName = fileDto.file.getOriginalFilename();
 		
-		File file = new File(fileDto.fileName, originalName.substring(originalName.lastIndexOf('.')), folderRepo.findById(fileDto.folderId).get());
-		fileRepo.save(file);
+		File file;
 		
-		FileContent content = new FileContent(fileDto.file.getBytes(), file);
-		fileContentRepo.save(content);
+		if(Objects.nonNull(fileDto.fileId)) {
+			
+			file = fileRepo.findById(fileDto.fileId).get();
+			file.setName(fileDto.fileName);
+			
+			fileRepo.save(file);
+			
+		} else {
+			String originalName = fileDto.file.getOriginalFilename();
+
+			file = new File(fileDto.fileName, originalName.substring(originalName.lastIndexOf('.')), folderRepo.findById(fileDto.folderId).get());
+			fileRepo.save(file);
+
+			FileContent content = new FileContent(fileDto.file.getBytes(), file);
+			fileContentRepo.save(content);
+		}
 		
 		return new Gson().toJson(file);
 	}
 	
 	@GetMapping(path="/getByFolder")
 	public String getByFolder(@RequestParam Long folderId) {
-		return new Gson().toJson(fileRepo.findByFolder(folderRepo.findById(folderId).get()));
+		
+		Folder folder = folderRepo.findById(folderId).get();
+		
+		List<File> files;
+		if(Objects.nonNull(folder.getReferenceFolder())) {
+			files = fileRepo.findByFolder(folder.getReferenceFolder());
+		} else {
+			files = fileRepo.findByFolder(folder);
+		}
+		
+		return new Gson().toJson(files);
 	}
 	
 	@GetMapping(path="/deleteFile")

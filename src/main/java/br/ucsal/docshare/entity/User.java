@@ -27,12 +27,16 @@ public class User {
 	@Column(name="role")
 	private String role;
 	
+	@Column(name="department")
+	private String department;
+	
 
-	public User(String username, String email, String password, String role) {
+	public User(String username, String email, String password, String role, String department) {
 		this.username = username;
 		this.email = email;
 		this.password = password;
 		this.role = role;
+		this.department = department;
 	}
 	
 	public User() {
@@ -74,5 +78,14 @@ public class User {
 	public void setRole(String role) {
 		this.role = role;
 	}
+	
+	public String getDepartment() {
+		return department;
+	}
+
+	public void setDepartment(String department) {
+		this.department = department;
+	}
+
 
 }

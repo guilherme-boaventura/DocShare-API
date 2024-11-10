@@ -27,6 +27,10 @@ public class Folder {
 	@JoinColumn(name="user_id")
 	private User user;
 	
+	@ManyToOne
+	@JoinColumn(name="reference_folder_id")
+	private Folder referenceFolder;
+	
 	@Embedded
 	@AttributeOverride(name="acronym", column=@Column(name="visibility"))
 	private FolderVisibility visibility;
@@ -39,12 +43,13 @@ public class Folder {
 		
 	}
 
-	public Folder(String name, User user, FolderVisibility visibility, Tag tag) {
+	public Folder(String name, User user, FolderVisibility visibility, Tag tag, Folder referenceFolder) {
 		super();
 		this.name = name;
 		this.user = user;
 		this.visibility = visibility;
 		this.tag = tag;
+		this.referenceFolder = referenceFolder;
 	}
 
 	public String getName() {
@@ -82,4 +87,13 @@ public class Folder {
 	public Long getId() {
 		return id;
 	}
+	
+	public Folder getReferenceFolder() {
+		return referenceFolder;
+	}
+
+	public void setReferenceFolder(Folder referenceFolder) {
+		this.referenceFolder = referenceFolder;
+	}
+
 }
