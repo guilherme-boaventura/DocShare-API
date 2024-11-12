@@ -2,6 +2,7 @@ package br.ucsal.docshare.controller;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,7 +18,9 @@ import com.google.gson.Gson;
 
 import br.ucsal.docshare.entity.File;
 import br.ucsal.docshare.entity.Folder;
+import br.ucsal.docshare.entity.Tag;
 import br.ucsal.docshare.entity.User;
+import br.ucsal.docshare.repository.FileContentRepository;
 import br.ucsal.docshare.repository.FileRepository;
 import br.ucsal.docshare.repository.FolderRepository;
 import br.ucsal.docshare.repository.TagRepository;
@@ -33,6 +36,9 @@ public class FolderController {
 	private FileRepository fileRepo;
 	
 	@Autowired
+	private FileContentRepository fileContentRepo;
+	
+	@Autowired
 	private FolderRepository folderRepo;
 
 	@Autowired
@@ -41,10 +47,10 @@ public class FolderController {
 	@Autowired
 	private TagRepository tagRepo;
 	
-	public record FolderDto(Long id, String name, String visibility, String tag) {}
+	public record FolderDto(Long id, String name, String visibility, String tag, Long referenceFolderId) {}
 	
 	@GetMapping(path="/getUserFolders")
-	public String teste(@AuthenticationPrincipal UserDetails userDetails) {
+	public String getUserFolders(@AuthenticationPrincipal UserDetails userDetails) {
 		User user = userRepo.findByUsername(userDetails.getUsername()).orElseThrow(() -> new RecordNotFoundException("User not found"));
 		
 		List<Folder> usrFolders = folderRepo.findByUser(user);
@@ -64,12 +70,34 @@ public class FolderController {
 		
 		return new Gson().toJson(usrFolders);
 	}
+	
+	@GetMapping(path="/getSharedFolders")
+	public String getSharedFolders(@AuthenticationPrincipal UserDetails userDetails) {
+		
+		List<Folder> sharedFolders = folderRepo.findSharedFolders().stream()
+																   .filter(f -> ((FolderVisibility.DEPARTMENTAL.equals(f.getVisibility()) && f.getUser().getDepartment().equals(userRepo.findByUsername(userDetails.getUsername()).get().getDepartment())) 
+																		   		|| FolderVisibility.CORPORATIVE.equals(f.getVisibility()))
+																		   		&& Objects.isNull(f.getReferenceFolder()))
+																   .collect(Collectors.toList());
+		
+		sharedFolders.forEach(f -> {
+			f.setVisibility(FolderVisibility.get(f.getVisibility().getAcronym()));
+		});
+		
+		return new Gson().toJson(sharedFolders);
+	}
 
 	@PostMapping(path="/saveFolder")
-	public String insira(@RequestBody FolderDto folderDto, @AuthenticationPrincipal UserDetails userDetails) {
+	public String saveFolder(@RequestBody FolderDto folderDto, @AuthenticationPrincipal UserDetails userDetails) {
 		if(Objects.isNull(folderDto.id)) {
-			Folder folder = new Folder(folderDto.name, userRepo.findByUsername(userDetails.getUsername()).get(), FolderVisibility.get(folderDto.visibility), tagRepo.findByAcronym(folderDto.tag).get(), null);
+
+			Folder referenceFolder = (Objects.nonNull(folderDto.referenceFolderId))? folderRepo.findById(folderDto.referenceFolderId).orElseGet(null) : null;;
+			Tag tag = (Objects.nonNull(folderDto.tag))? tagRepo.findByAcronym(folderDto.tag).orElseGet(null) : null;
+			
+			Folder folder = new Folder(folderDto.name, userRepo.findByUsername(userDetails.getUsername()).get(), FolderVisibility.get(folderDto.visibility), tag, referenceFolder);
+
 			return new Gson().toJson(folderRepo.save(folder));
+
 		} else {
 			Folder folder = folderRepo.findById(folderDto.id).get();
 			
@@ -121,6 +149,7 @@ public class FolderController {
 		List<File> files = fileRepo.findByFolder(folder);
 
 		files.forEach(f -> {
+			fileContentRepo.delete(fileContentRepo.findByFile(f));
 			fileRepo.delete(f);
 		});
 		

@@ -40,7 +40,6 @@ public class Folder {
 	private Tag tag;
 	
 	public Folder() {
-		
 	}
 
 	public Folder(String name, User user, FolderVisibility visibility, Tag tag, Folder referenceFolder) {
